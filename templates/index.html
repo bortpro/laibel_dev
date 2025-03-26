@@ -1,64 +1,85 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Labeling Tool</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Image Labeling Tool</h1>
-        </header>
-        
-        <main>
-            <div class="workspace">
-                <div class="sidebar">
-                    <div class="tool-section">
-                        <h3>Tools</h3>
-                        <button id="draw-box-btn" class="btn active">Draw Box</button>
-                        <button id="move-box-btn" class="btn">Move Box</button>
-                    </div>
-                    
-                    <div class="labels-section">
-                        <h3>Labels</h3>
-                        <div class="label-input">
-                            <input type="text" id="new-label" placeholder="Add new label">
-                            <button id="add-label-btn" class="btn">Add</button>
-                        </div>
-                        <div id="labels-list" class="labels-list">
-                            <!-- Labels will be added here dynamically -->
-                        </div>
-                    </div>
-                    
-                    <div class="annotations-section">
-                        <h3>Annotations</h3>
-                        <div id="annotations-list" class="annotations-list">
-                            <!-- Annotations will be added here dynamically -->
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="canvas-container">
-                    <div class="canvas-tools">
-                        <button id="upload-btn" class="btn">Upload Image</button>
-                        <input type="file" id="image-upload" accept="image/*" style="display: none;">
-                        <button id="save-btn" class="btn primary">Save Annotations</button>
-                    </div>
-                    <div class="canvas-wrapper">
-                        <canvas id="image-canvas"></canvas>
-                    </div>
-                </div>
-            </div>
-        </main>
-        
-        <footer>
-            <p>Image Labeling Tool - Inspired by makesense AI</p>
-        </footer>
-    </div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Image Labeling Tool</title>
+        <link
+            rel="stylesheet"
+            href="{{ url_for('static', filename='css/style.css') }}"
+        />
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>Image Labeling Tool</h1>
+            </header>
 
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-</body>
+            <main>
+                <div class="workspace">
+                    <div class="sidebar">
+                        <div class="tool-section">
+                            <h3>Tools</h3>
+                            <button id="draw-box-btn" class="btn active">
+                                Draw Box
+                            </button>
+                            <button id="move-box-btn" class="btn">
+                                Move Box
+                            </button>
+                        </div>
+
+                        <div class="labels-section">
+                            <h3>Labels</h3>
+                            <div class="label-input">
+                                <input
+                                    type="text"
+                                    id="new-label"
+                                    placeholder="Add new label"
+                                />
+                                <button id="add-label-btn" class="btn">
+                                    Add
+                                </button>
+                            </div>
+                            <div id="labels-list" class="labels-list">
+                                <!-- Labels will be added here dynamically -->
+                            </div>
+                        </div>
+
+                        <div class="annotations-section">
+                            <h3>Annotations</h3>
+                            <div id="annotations-list" class="annotations-list">
+                                <!-- Annotations will be added here dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="canvas-container">
+                        <div class="canvas-tools">
+                            <button id="upload-btn" class="btn">
+                                Upload Image
+                            </button>
+                            <input
+                                type="file"
+                                id="image-upload"
+                                accept="image/*"
+                                style="display: none"
+                            />
+                            <button id="save-btn" class="btn primary">
+                                Save Annotations
+                            </button>
+                        </div>
+                        <div class="canvas-wrapper">
+                            <canvas id="image-canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer>
+                <p>Image Labeling Tool - Laibel</p>
+            </footer>
+        </div>
+
+        <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    </body>
 </html>
-
