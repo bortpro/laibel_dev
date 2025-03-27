@@ -354,17 +354,7 @@ document.addEventListener("DOMContentLoaded", function () {
         redrawCanvas(); // Redraw canvas without the deleted box
       };
 
-      // --- REMOVED COORDINATE DISPLAY CREATION ---
-      // const coordsSpan = document.createElement("span");
-      // coordsSpan.className = "annotation-coords";
-      // coordsSpan.textContent = ` (${Math.round(box.x)}, ${Math.round(box.y)}, ${Math.round(box.width)}, ${Math.round(box.height)})`;
-      // coordsSpan.title = "Coordinates on displayed image";
-      // --- END REMOVAL ---
-
       annotationItem.appendChild(labelSelect);
-      // --- REMOVED COORDINATE DISPLAY APPENDING ---
-      // annotationItem.appendChild(coordsSpan); // Add coordinates display
-      // --- END REMOVAL ---
       annotationItem.appendChild(deleteBtn);
       annotationsList.appendChild(annotationItem);
     });
