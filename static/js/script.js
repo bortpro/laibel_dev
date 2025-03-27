@@ -167,12 +167,6 @@ document.addEventListener("DOMContentLoaded", function () {
         y <= box.y + box.height + hs
       )
         return { boxIndex: i, handle: "br" }; // Bottom-right
-
-      // Edge handles (optional, uncomment if needed)
-      // if (x >= box.x + hs && x <= box.x + box.width - hs && y >= box.y - hs && y <= box.y + hs) return { boxIndex: i, handle: 't' }; // Top edge
-      // if (x >= box.x + hs && x <= box.x + box.width - hs && y >= box.y + box.height - hs && y <= box.y + box.height + hs) return { boxIndex: i, handle: 'b' }; // Bottom edge
-      // if (x >= box.x - hs && x <= box.x + hs && y >= box.y + hs && y <= box.y + box.height - hs) return { boxIndex: i, handle: 'l' }; // Left edge
-      // if (x >= box.x + box.width - hs && x <= box.x + box.width + hs && y >= box.y + hs && y <= box.y + box.height - hs) return { boxIndex: i, handle: 'r' }; // Right edge
     }
     return null; // No handle found
   }
@@ -280,15 +274,6 @@ document.addEventListener("DOMContentLoaded", function () {
             break;
         }
       } else {
-        // Check if hovering over a box body (for future move implementation)
-        // let hoveringBox = false;
-        // for (const box of boxes) {
-        //     if (currentX >= box.x && currentX <= box.x + box.width && currentY >= box.y && currentY <= box.y + box.height) {
-        //         hoveringBox = true;
-        //         break;
-        //     }
-        // }
-        // canvas.style.cursor = hoveringBox ? 'move' : 'default';
         canvas.style.cursor = "default"; // Default cursor if not over a handle
       }
     }
@@ -411,7 +396,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Draw label text
       if (box.label) {
-        // ... (existing label drawing code) ...
         ctx.fillStyle = color;
         const text = box.label;
         const textMetrics = ctx.measureText(text); // Use measureText for better width
@@ -490,7 +474,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
   function addNewLabel() {
-    /* ... existing code ... */
     const labelName = newLabelInput.value.trim();
     if (labelName && !labels.some((l) => l.name === labelName)) {
       const color = getRandomColor();
@@ -514,7 +497,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
   function updateLabelsList() {
-    /* ... existing code ... */
     labelsList.innerHTML = "";
     labels.forEach((label, index) => {
       const labelItem = document.createElement("div");
@@ -550,7 +532,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
   function updateAnnotationsList() {
-    /* ... existing code ... */
     annotationsList.innerHTML = "";
     boxes.forEach((box, index) => {
       const annotationItem = document.createElement("div");
@@ -613,7 +594,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- Save annotations --- (No changes needed here)
   saveBtn.addEventListener("click", () => {
-    /* ... existing code ... */
     if (!image) {
       alert("Please upload an image first.");
       return;
@@ -643,7 +623,6 @@ document.addEventListener("DOMContentLoaded", function () {
     alert("Annotation JSON prepared for download.");
   });
   function downloadJson(data, filename) {
-    /* ... existing code ... */
     const jsonStr = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -656,7 +635,6 @@ document.addEventListener("DOMContentLoaded", function () {
     URL.revokeObjectURL(url);
   }
   function getRandomColor() {
-    /* ... existing code ... */
     const letters = "0123456789ABCDEF";
     let color = "#";
     for (let i = 0; i < 6; i++) {
