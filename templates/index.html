@@ -18,6 +18,7 @@
             <main>
                 <div class="workspace">
                     <div class="sidebar">
+                        <!-- Sidebar content remains the same -->
                         <div class="tool-section">
                             <h3>Tools</h3>
                             <button id="draw-box-btn" class="btn active">
@@ -56,14 +57,34 @@
                     <div class="canvas-container">
                         <div class="canvas-tools">
                             <button id="upload-btn" class="btn">
-                                Upload Image
+                                Upload Images
                             </button>
+
                             <input
                                 type="file"
                                 id="image-upload"
                                 accept="image/*"
                                 style="display: none"
+                                multiple
                             />
+
+                            <div class="navigation-controls">
+                                <button
+                                    id="prev-image-btn"
+                                    class="btn"
+                                    disabled
+                                >
+                                    < Prev
+                                </button>
+                                <span id="image-info">No images loaded</span>
+                                <button
+                                    id="next-image-btn"
+                                    class="btn"
+                                    disabled
+                                >
+                                    Next >
+                                </button>
+                            </div>
                             <button id="save-btn" class="btn primary">
                                 Save Annotations
                             </button>
