@@ -37,22 +37,47 @@ document.addEventListener("DOMContentLoaded", function () {
   const uploadBtn = document.getElementById("upload-btn");
   const imageUpload = document.getElementById("image-upload");
   const saveBtn = document.getElementById("save-btn");
+  const exportYoloBtn = document.getElementById("export-yolo-btn"); // Already added, good!
   const drawBoxBtn = document.getElementById("draw-box-btn");
-  const editBoxBtn = document.getElementById("edit-box-btn"); // Ensure ID matches HTML
+  const editBoxBtn = document.getElementById("edit-box-btn");
   const addLabelBtn = document.getElementById("add-label-btn");
   const newLabelInput = document.getElementById("new-label");
   const labelsList = document.getElementById("labels-list");
   const annotationsList = document.getElementById("annotations-list");
-  // --- NEW DOM Elements ---
   const prevImageBtn = document.getElementById("prev-image-btn");
   const nextImageBtn = document.getElementById("next-image-btn");
   const imageInfoSpan = document.getElementById("image-info");
 
-  // --- Tool Selection ---
+  // --- Event Listeners ---
   drawBoxBtn.addEventListener("click", () => switchTool("draw"));
   editBoxBtn.addEventListener("click", () => switchTool("edit"));
+  uploadBtn.addEventListener("click", () => {
+    imageUpload.click();
+  });
+  prevImageBtn.addEventListener("click", () => {
+    if (currentImageIndex > 0) {
+      loadImageData(currentImageIndex - 1);
+    }
+  });
+  nextImageBtn.addEventListener("click", () => {
+    if (currentImageIndex < imageData.length - 1) {
+      loadImageData(currentImageIndex + 1);
+    }
+  });
+  addLabelBtn.addEventListener("click", addNewLabel);
+  newLabelInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      addNewLabel();
+    }
+  });
 
+  // --- MODIFIED: Attach listeners for export buttons ---
+  saveBtn.addEventListener("click", saveJsonAnnotations); // Changed function name
+  exportYoloBtn.addEventListener("click", exportYoloAnnotations); // Added YOLO export listener
+
+  // --- Tool Switching and State Reset ---
   function switchTool(tool) {
+    /* ... unchanged ... */
     currentTool = tool;
     if (tool === "draw") {
       drawBoxBtn.classList.add("active");
@@ -66,9 +91,8 @@ document.addEventListener("DOMContentLoaded", function () {
       canvas.style.cursor = "default";
       resetDrawState();
     }
-    redrawCanvas(); // Redraw to show/hide handles
+    redrawCanvas();
   }
-
   function resetDrawState() {
     isDrawing = false;
   }
@@ -79,30 +103,20 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- Image Upload Handling ---
-  uploadBtn.addEventListener("click", () => {
-    imageUpload.click();
-  });
-
   imageUpload.addEventListener("change", (e) => {
+    /* ... unchanged ... */
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
-    // Reset existing data if new files are uploaded
     imageData = [];
     currentImageIndex = -1;
-    clearCanvasAndState(); // Clear display and reset UI
-
-    let filesProcessed = 0;
+    clearCanvasAndState();
     const filePromises = [];
-
-    // Process each file
     Array.from(files).forEach((file) => {
       if (file.type.startsWith("image/")) {
         const reader = new FileReader();
-
         const loadPromise = new Promise((resolve, reject) => {
           reader.onload = function (event) {
-            const img = new Image(); // Use 'img' locally, 'image' is the global current one
+            const img = new Image();
             img.onload = function () {
               const data = {
                 src: event.target.result,
@@ -110,11 +124,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 originalWidth: img.width,
                 originalHeight: img.height,
                 scaleRatio: 1,
-                boxes: [], // Each image gets its own empty boxes array
-                // imageObject: img // Don't store the Image object globally yet
+                boxes: [],
               };
-
-              // Calculate scale ratio for this specific image
               if (
                 data.originalWidth > MAX_WIDTH ||
                 data.originalHeight > MAX_HEIGHT
@@ -123,29 +134,26 @@ document.addEventListener("DOMContentLoaded", function () {
                 const heightRatio = MAX_HEIGHT / data.originalHeight;
                 data.scaleRatio = Math.min(widthRatio, heightRatio);
               }
-              imageData.push(data); // Add the processed data
-              resolve(); // Resolve promise for this file
+              imageData.push(data);
+              resolve();
             };
-            img.onerror = reject; // Handle image load errors
+            img.onerror = reject;
             img.src = event.target.result;
           };
-          reader.onerror = reject; // Handle file read errors
+          reader.onerror = reject;
           reader.readAsDataURL(file);
         });
         filePromises.push(loadPromise);
       }
     });
-
-    // Wait for all files to be processed
     Promise.all(filePromises)
       .then(() => {
         console.log(`Processed ${imageData.length} images.`);
         if (imageData.length > 0) {
-          loadImageData(0); // Load the first image
+          loadImageData(0);
         } else {
-          updateNavigationUI(); // Update UI even if no valid images found
+          updateNavigationUI();
         }
-        // Clear the input field value to allow re-uploading the same files
         imageUpload.value = null;
       })
       .catch((error) => {
@@ -158,57 +166,43 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   });
 
-  // --- NEW: Load and Display Specific Image Data ---
+  // --- Image Loading and Navigation ---
   function loadImageData(index) {
+    /* ... unchanged ... */
     if (index < 0 || index >= imageData.length) {
       console.error("Invalid image index requested:", index);
       clearCanvasAndState();
       return;
     }
-
     currentImageIndex = index;
     const data = imageData[currentImageIndex];
-
-    // Update global state for the current image
     originalWidth = data.originalWidth;
     originalHeight = data.originalHeight;
     scaleRatio = data.scaleRatio;
     currentFilename = data.filename;
-    boxes = data.boxes; // <<<<<< IMPORTANT: Switch to this image's boxes
-
+    boxes = data.boxes;
     console.log(`Loading image ${currentImageIndex + 1}: ${currentFilename}`);
-
-    // Create a new Image object for display
     image = new Image();
     image.onload = () => {
-      // Calculate display dimensions
       const displayWidth = Math.round(originalWidth * scaleRatio);
       const displayHeight = Math.round(originalHeight * scaleRatio);
-
-      // Resize canvas
       canvas.width = displayWidth;
       canvas.height = displayHeight;
-
-      // Reset interaction states
       resetDrawState();
       resetEditState();
-      // Ensure the correct tool cursor is set (if needed, switchTool handles this)
-      // canvas.style.cursor = (currentTool === 'draw') ? 'crosshair' : 'default';
-
-      redrawCanvas(); // Draw the new image and its boxes
-      updateAnnotationsList(); // Update the sidebar list for the new boxes
-      updateNavigationUI(); // Update Prev/Next buttons and info text
+      redrawCanvas();
+      updateAnnotationsList();
+      updateNavigationUI();
     };
     image.onerror = () => {
       console.error("Error loading image source for display:", data.filename);
       alert(`Error loading image: ${data.filename}`);
-      clearCanvasAndState(); // Clear canvas if image fails to load
+      clearCanvasAndState();
     };
-    image.src = data.src; // Set the source to trigger loading
+    image.src = data.src;
   }
-
-  // --- NEW: Clear canvas and reset UI ---
   function clearCanvasAndState() {
+    /* ... unchanged ... */
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     image = null;
     boxes = [];
@@ -216,54 +210,38 @@ document.addEventListener("DOMContentLoaded", function () {
     originalHeight = 0;
     scaleRatio = 1;
     currentFilename = "annotated_image";
-    currentImageIndex = -1; // Reset index
+    currentImageIndex = -1;
     resetDrawState();
     resetEditState();
-    updateAnnotationsList(); // Clear annotation list
-    updateNavigationUI(); // Update buttons/info
+    updateAnnotationsList();
+    updateNavigationUI();
     console.log("Canvas and state cleared.");
   }
-
-  // --- NEW: Update Navigation UI Elements ---
   function updateNavigationUI() {
+    /* ... unchanged ... */
     if (imageData.length === 0) {
       imageInfoSpan.textContent = "No images loaded";
       prevImageBtn.disabled = true;
       nextImageBtn.disabled = true;
     } else {
-      imageInfoSpan.textContent = `${currentImageIndex + 1} / ${imageData.length} (${imageData[currentImageIndex].filename})`;
+      imageInfoSpan.textContent = `${currentImageIndex + 1} / ${imageData.length} (${imageData[currentImageIndex]?.filename || "..."})`; // Added safety check for filename
       prevImageBtn.disabled = currentImageIndex <= 0;
       nextImageBtn.disabled = currentImageIndex >= imageData.length - 1;
     }
   }
 
-  // --- NEW: Navigation Button Listeners ---
-  prevImageBtn.addEventListener("click", () => {
-    if (currentImageIndex > 0) {
-      loadImageData(currentImageIndex - 1);
-    }
-  });
-
-  nextImageBtn.addEventListener("click", () => {
-    if (currentImageIndex < imageData.length - 1) {
-      loadImageData(currentImageIndex + 1);
-    }
-  });
-
-  // --- Canvas Event Listeners (Mostly Unchanged Logic, operates on current `boxes`) ---
+  // --- Canvas Event Handlers ---
   canvas.addEventListener("mousedown", handleMouseDown);
   canvas.addEventListener("mousemove", handleMouseMove);
   canvas.addEventListener("mouseup", handleMouseUp);
   canvas.addEventListener("mouseleave", handleMouseLeave);
 
   function getMousePos(e) {
-    /* ... no changes ... */
-    const rect = canvas.getBoundingClientRect();
+    /* ... unchanged ... */ const rect = canvas.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }
-
   function getHandleUnderMouse(x, y) {
-    /* ... no changes needed, operates on current boxes ... */
+    /* ... unchanged ... */
     for (let i = boxes.length - 1; i >= 0; i--) {
       const box = boxes[i];
       const hs = handleSize / 2;
@@ -298,10 +276,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     return null;
   }
-
   function handleMouseDown(e) {
-    /* ... no changes needed, uses global state ... */
-    if (!image) return; // Check if an image is loaded
+    /* ... unchanged ... */
+    if (!image) return;
     const pos = getMousePos(e);
     startX = pos.x;
     startY = pos.y;
@@ -321,14 +298,12 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
   }
-
   function handleMouseMove(e) {
-    /* ... no changes needed, uses global state ... */
+    /* ... unchanged ... */
     if (!image) return;
     const pos = getMousePos(e);
     const currentX = pos.x;
     const currentY = pos.y;
-
     if (currentTool === "draw" && isDrawing) {
       redrawCanvas();
       ctx.strokeStyle = "#4a6cf7";
@@ -388,9 +363,8 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
   }
-
   function handleMouseUp(e) {
-    /* ... no changes needed, uses global state ... */
+    /* ... unchanged, except adds to imageData[i].boxes ... */
     if (currentTool === "draw" && isDrawing) {
       isDrawing = false;
       const pos = getMousePos(e);
@@ -398,7 +372,12 @@ document.addEventListener("DOMContentLoaded", function () {
       const endY = pos.y;
       const width = endX - startX;
       const height = endY - startY;
-      if (Math.abs(width) >= minBoxSize && Math.abs(height) >= minBoxSize) {
+      if (
+        Math.abs(width) >= minBoxSize &&
+        Math.abs(height) >= minBoxSize &&
+        currentImageIndex !== -1
+      ) {
+        // Added check for valid index
         const newBox = {
           x: Math.min(startX, endX),
           y: Math.min(startY, endY),
@@ -406,15 +385,13 @@ document.addEventListener("DOMContentLoaded", function () {
           height: Math.abs(height),
           label: labels.length > 0 ? labels[0].name : "unlabeled",
         };
-        // IMPORTANT: Add to the *current* image's boxes
         imageData[currentImageIndex].boxes.push(newBox);
         updateAnnotationsList();
       }
       redrawCanvas();
     } else if (currentTool === "edit" && isResizing) {
-      const box = boxes[selectedBoxIndex]; // Get current box
+      const box = boxes[selectedBoxIndex];
       if (box) {
-        // Check if box exists (might have been deleted)
         if (box.width < 0) {
           box.x += box.width;
           box.width = Math.abs(box.width);
@@ -431,9 +408,8 @@ document.addEventListener("DOMContentLoaded", function () {
       updateAnnotationsList();
     }
   }
-
   function handleMouseLeave(e) {
-    /* ... no changes needed, uses global state ... */
+    /* ... unchanged ... */
     if (isDrawing) {
       isDrawing = false;
       redrawCanvas();
@@ -461,13 +437,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // --- redrawCanvas (Operates on current `image` and `boxes`) ---
+  // --- Drawing Canvas ---
   function redrawCanvas() {
+    /* ... unchanged ... */
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw current image (if loaded)
     if (image) {
-      // Check canvas size just in case
       const expectedWidth = Math.round(originalWidth * scaleRatio);
       const expectedHeight = Math.round(originalHeight * scaleRatio);
       if (canvas.width !== expectedWidth || canvas.height !== expectedHeight) {
@@ -476,7 +450,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
     } else {
-      // Optionally draw a placeholder if no image is loaded
       ctx.fillStyle = "#f0f0f0";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#888";
@@ -487,21 +460,15 @@ document.addEventListener("DOMContentLoaded", function () {
         canvas.width / 2,
         canvas.height / 2,
       );
-      return; // Don't draw boxes if no image
+      return;
     }
-
-    // Draw boxes for the CURRENT image
     boxes.forEach((box, index) => {
       const labelObj = labels.find((l) => l.name === box.label);
       const color = labelObj ? labelObj.color : "#CCCCCC";
-
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.strokeRect(box.x, box.y, box.width, box.height);
-
-      // Draw label text
       if (box.label) {
-        /* ... no changes ... */
         ctx.fillStyle = color;
         const text = box.label;
         const textMetrics = ctx.measureText(text);
@@ -511,10 +478,7 @@ document.addEventListener("DOMContentLoaded", function () {
         ctx.font = "12px Arial";
         ctx.fillText(text, box.x + 5, box.y - 4);
       }
-
-      // Draw resize handles if in edit mode
       if (currentTool === "edit") {
-        /* ... no changes ... */
         ctx.fillStyle = color;
         ctx.strokeStyle = "white";
         ctx.lineWidth = 1;
@@ -561,23 +525,15 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // --- Label Management (Labels are Global) ---
-  addLabelBtn.addEventListener("click", addNewLabel);
-  newLabelInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-      addNewLabel();
-    }
-  });
-
+  // --- Label Management ---
   function addNewLabel() {
-    /* ... Mostly unchanged, applies globally ... */
+    /* ... unchanged ... */
     const labelName = newLabelInput.value.trim();
     if (labelName && !labels.some((l) => l.name === labelName)) {
       const color = getRandomColor();
       labels.push({ name: labelName, color: color });
       updateLabelsList();
-      updateAnnotationsList(); // Refresh annotations in case selects need updating
-      // Assign to unlabeled boxes *on the current image* only? Or all? Let's do current only for now.
+      updateAnnotationsList();
       if (labels.length === 1 && currentImageIndex !== -1) {
         imageData[currentImageIndex].boxes.forEach((box) => {
           if (box.label === "unlabeled") {
@@ -594,9 +550,8 @@ document.addEventListener("DOMContentLoaded", function () {
       alert(`Label "${labelName}" already exists.`);
     }
   }
-
   function updateLabelsList() {
-    /* ... Unchanged, operates on global labels ... */
+    /* ... unchanged ... */
     labelsList.innerHTML = "";
     labels.forEach((label, index) => {
       const labelItem = document.createElement("div");
@@ -616,9 +571,7 @@ document.addEventListener("DOMContentLoaded", function () {
       deleteBtn.onclick = (e) => {
         e.stopPropagation();
         const labelNameToDelete = label.name;
-        labels.splice(index, 1); // Remove from global list
-
-        // --- NEW: Update boxes across ALL images ---
+        labels.splice(index, 1);
         imageData.forEach((imgData) => {
           imgData.boxes.forEach((box) => {
             if (box.label === labelNameToDelete) {
@@ -628,7 +581,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         updateLabelsList();
         updateAnnotationsList();
-        redrawCanvas(); // Update current view
+        redrawCanvas();
       };
       labelItem.appendChild(labelDisplay);
       labelItem.appendChild(deleteBtn);
@@ -636,22 +589,21 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // --- updateAnnotationsList (Operates on current `boxes`) ---
+  // --- Annotation List Management ---
   function updateAnnotationsList() {
-    annotationsList.innerHTML = ""; // Clear current list
-    // Use the 'boxes' array which points to the current image's annotations
+    /* ... unchanged, operates on current boxes via global var ... */
+    annotationsList.innerHTML = "";
+    if (currentImageIndex === -1) return; // Don't update if no image loaded
     boxes.forEach((box, index) => {
       const annotationItem = document.createElement("div");
       annotationItem.className = "annotation-item";
       const labelSelect = document.createElement("select");
       labelSelect.className = "annotation-label-select";
-      // Populate select options (unchanged logic)
       if (
         labels.length === 0 ||
         box.label === "unlabeled" ||
         !labels.some((l) => l.name === box.label)
       ) {
-        /* ... add unlabeled option ... */
         const option = document.createElement("option");
         option.value = "unlabeled";
         option.textContent = "unlabeled";
@@ -661,7 +613,6 @@ document.addEventListener("DOMContentLoaded", function () {
         labelSelect.appendChild(option);
       }
       labels.forEach((label) => {
-        /* ... add label options ... */
         const option = document.createElement("option");
         option.value = label.name;
         option.textContent = label.name;
@@ -670,32 +621,28 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         labelSelect.appendChild(option);
       });
-      // Update the specific box in the current image's array
       labelSelect.onchange = (e) => {
         imageData[currentImageIndex].boxes[index].label = e.target.value;
         redrawCanvas();
-      };
+      }; // Updates imageData directly
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "btn delete-annotation-btn";
       deleteBtn.textContent = "X";
       deleteBtn.title = "Delete this annotation";
       deleteBtn.onclick = () => {
-        // If deleting the box being edited, reset edit state
         if (isResizing && selectedBoxIndex === index) {
           resetEditState();
           canvas.style.cursor = "default";
         }
-        // Remove from the *current* image's boxes array
-        imageData[currentImageIndex].boxes.splice(index, 1);
-        // Adjust selectedBoxIndex if needed
+        imageData[currentImageIndex].boxes.splice(index, 1); // Removes from imageData directly
         if (selectedBoxIndex > index) {
           selectedBoxIndex--;
         } else if (selectedBoxIndex === index) {
           resetEditState();
           canvas.style.cursor = "default";
         }
-        updateAnnotationsList(); // Refresh list
-        redrawCanvas(); // Redraw canvas
+        updateAnnotationsList();
+        redrawCanvas();
       };
       annotationItem.appendChild(labelSelect);
       annotationItem.appendChild(deleteBtn);
@@ -703,22 +650,49 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // --- MODIFIED: Save annotations for ALL images ---
-  saveBtn.addEventListener("click", () => {
+  // --- Utilities ---
+  function getRandomColor() {
+    /* ... unchanged ... */ const letters = "0123456789ABCDEF";
+    let color = "#";
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  }
+
+  // --- MODIFIED: Download Helper Function ---
+  function downloadContent(content, filename, mimeType = "application/json") {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a); // Required for Firefox
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url); // Clean up
+  }
+
+  // --- MODIFIED: Save JSON Annotations Function ---
+  function saveJsonAnnotations() {
     if (imageData.length === 0) {
       alert("No images or annotations to save!");
       return;
     }
+    const hasAnnotations = imageData.some(
+      (imgData) => imgData.boxes && imgData.boxes.length > 0,
+    );
+    if (!hasAnnotations) {
+      alert("No annotations have been made to save!");
+      return;
+    }
 
     const allAnnotations = {
-      // Store global labels once
       labels: labels,
-      // Store annotations grouped by image
       annotations_by_image: imageData.map((imgData) => ({
         image_filename: imgData.filename,
         image_width: imgData.originalWidth,
         image_height: imgData.originalHeight,
-        // Scale boxes back to original dimensions for this image
         boxes: imgData.boxes.map((box) => ({
           x_min: Math.round(box.x / imgData.scaleRatio),
           y_min: Math.round(box.y / imgData.scaleRatio),
@@ -728,42 +702,119 @@ document.addEventListener("DOMContentLoaded", function () {
         })),
       })),
     };
-
-    console.log(
-      "Saving all annotations:",
-      JSON.stringify(allAnnotations, null, 2),
-    );
-    downloadJson(allAnnotations, `all_annotations.json`); // Use a general filename
+    const jsonStr = JSON.stringify(allAnnotations, null, 2);
+    console.log("Saving all annotations as JSON:", jsonStr);
+    downloadContent(jsonStr, `all_annotations.json`, "application/json"); // Use new helper
     alert("Annotation JSON for all images prepared for download.");
-  });
-
-  function downloadJson(data, filename) {
-    /* ... no changes ... */
-    const jsonStr = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }
-  function getRandomColor() {
-    /* ... no changes ... */
-    const letters = "0123456789ABCDEF";
-    let color = "#";
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
+
+  // --- NEW: Export YOLO Annotations Function ---
+  function exportYoloAnnotations() {
+    if (labels.length === 0) {
+      alert("Please define labels before exporting in YOLO format.");
+      return;
     }
-    return color;
+    if (imageData.length === 0) {
+      alert("No images loaded to export annotations for.");
+      return;
+    }
+
+    const labelIndexMap = new Map(
+      labels.map((label, index) => [label.name, index]),
+    );
+    console.log("Label Map for YOLO:", labelIndexMap);
+
+    let exportedFiles = 0;
+
+    imageData.forEach((imgData) => {
+      if (!imgData.boxes || imgData.boxes.length === 0) {
+        return;
+      } // Skip images with no boxes
+
+      let yoloContent = "";
+      let skippedBoxes = 0;
+
+      imgData.boxes.forEach((box) => {
+        const labelIndex = labelIndexMap.get(box.label);
+        if (labelIndex === undefined) {
+          console.warn(
+            `Skipping box with unknown label "${box.label}" in image ${imgData.filename}`,
+          );
+          skippedBoxes++;
+          return;
+        }
+
+        const original_x_min = box.x / imgData.scaleRatio;
+        const original_y_min = box.y / imgData.scaleRatio;
+        const original_box_width = box.width / imgData.scaleRatio;
+        const original_box_height = box.height / imgData.scaleRatio;
+
+        const original_x_center = original_x_min + original_box_width / 2;
+        const original_y_center = original_y_min + original_box_height / 2;
+
+        const norm_x_center = original_x_center / imgData.originalWidth;
+        const norm_y_center = original_y_center / imgData.originalHeight;
+        const norm_width = original_box_width / imgData.originalWidth;
+        const norm_height = original_box_height / imgData.originalHeight;
+
+        // Check for invalid calculations (e.g., division by zero if image dimensions are 0)
+        if (
+          isNaN(norm_x_center) ||
+          isNaN(norm_y_center) ||
+          isNaN(norm_width) ||
+          isNaN(norm_height)
+        ) {
+          console.error(
+            `Invalid calculation for box in image ${imgData.filename}. Original dimensions: ${imgData.originalWidth}x${imgData.originalHeight}. Skipping box.`,
+          );
+          skippedBoxes++;
+          return;
+        }
+
+        // Clamp values to be within [0.0, 1.0] - YOLO expects this
+        const clamp = (val) => Math.max(0.0, Math.min(1.0, val));
+
+        yoloContent += `${labelIndex} ${clamp(norm_x_center).toFixed(6)} ${clamp(norm_y_center).toFixed(6)} ${clamp(norm_width).toFixed(6)} ${clamp(norm_height).toFixed(6)}\n`;
+      });
+
+      if (yoloContent.length > 0) {
+        const baseFilename =
+          imgData.filename.substring(0, imgData.filename.lastIndexOf(".")) ||
+          imgData.filename;
+        const yoloFilename = `${baseFilename}.txt`;
+
+        downloadContent(yoloContent, yoloFilename, "text/plain"); // Use new helper
+        exportedFiles++;
+      } else if (
+        skippedBoxes === imgData.boxes.length &&
+        imgData.boxes.length > 0
+      ) {
+        console.warn(
+          `All boxes skipped for image ${imgData.filename} due to unknown labels or calculation errors.`,
+        );
+      }
+    });
+
+    if (exportedFiles > 0) {
+      alert(`${exportedFiles} YOLO annotation file(s) prepared for download.`);
+    } else {
+      const hasAnyAnnotations = imageData.some(
+        (imgData) => imgData.boxes && imgData.boxes.length > 0,
+      );
+      if (!hasAnyAnnotations) {
+        alert("No annotations have been made to export.");
+      } else {
+        alert(
+          "No annotations found with recognized labels to export in YOLO format.",
+        );
+      }
+    }
   }
 
   // --- Initialize ---
   updateLabelsList();
-  updateAnnotationsList(); // Initially empty
-  updateNavigationUI(); // Set initial state of navigation
-  switchTool("draw"); // Start in draw mode
-  redrawCanvas(); // Draw placeholder initially
+  updateAnnotationsList();
+  updateNavigationUI();
+  switchTool("draw");
+  redrawCanvas();
 });
