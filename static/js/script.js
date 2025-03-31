@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const uploadBtn = document.getElementById("upload-btn");
   const imageUpload = document.getElementById("image-upload");
   const saveBtn = document.getElementById("save-btn");
-  const exportYoloBtn = document.getElementById("export-yolo-btn"); // Already added, good!
+  const exportYoloBtn = document.getElementById("export-yolo-btn");
   const drawBoxBtn = document.getElementById("draw-box-btn");
   const editBoxBtn = document.getElementById("edit-box-btn");
   const addLabelBtn = document.getElementById("add-label-btn");
@@ -47,6 +47,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const prevImageBtn = document.getElementById("prev-image-btn");
   const nextImageBtn = document.getElementById("next-image-btn");
   const imageInfoSpan = document.getElementById("image-info");
+  const deleteImageBtn = document.getElementById("delete-image-btn"); // Added delete button element
 
   // --- Event Listeners ---
   drawBoxBtn.addEventListener("click", () => switchTool("draw"));
@@ -70,14 +71,12 @@ document.addEventListener("DOMContentLoaded", function () {
       addNewLabel();
     }
   });
-
-  // --- MODIFIED: Attach listeners for export buttons ---
-  saveBtn.addEventListener("click", saveJsonAnnotations); // Changed function name
-  exportYoloBtn.addEventListener("click", exportYoloAnnotations); // Added YOLO export listener
+  saveBtn.addEventListener("click", saveJsonAnnotations);
+  exportYoloBtn.addEventListener("click", exportYoloAnnotations);
+  deleteImageBtn.addEventListener("click", deleteCurrentImage); // Added delete button listener
 
   // --- Tool Switching and State Reset ---
   function switchTool(tool) {
-    /* ... unchanged ... */
     currentTool = tool;
     if (tool === "draw") {
       drawBoxBtn.classList.add("active");
@@ -104,7 +103,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- Image Upload Handling ---
   imageUpload.addEventListener("change", (e) => {
-    /* ... unchanged ... */
     const files = e.target.files;
     if (!files || files.length === 0) return;
     imageData = [];
@@ -168,7 +166,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- Image Loading and Navigation ---
   function loadImageData(index) {
-    /* ... unchanged ... */
     if (index < 0 || index >= imageData.length) {
       console.error("Invalid image index requested:", index);
       clearCanvasAndState();
@@ -202,7 +199,7 @@ document.addEventListener("DOMContentLoaded", function () {
     image.src = data.src;
   }
   function clearCanvasAndState() {
-    /* ... unchanged ... */
+    // MODIFIED implicitly by calling updated updateNavigationUI
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     image = null;
     boxes = [];
@@ -214,17 +211,24 @@ document.addEventListener("DOMContentLoaded", function () {
     resetDrawState();
     resetEditState();
     updateAnnotationsList();
-    updateNavigationUI();
+    updateNavigationUI(); // This will now also handle disabling delete btn
     console.log("Canvas and state cleared.");
   }
   function updateNavigationUI() {
-    /* ... unchanged ... */
-    if (imageData.length === 0) {
+    // MODIFIED to handle delete button state
+    const hasImages = imageData.length > 0;
+    deleteImageBtn.disabled = !hasImages; // Enable/disable delete button
+
+    if (!hasImages) {
       imageInfoSpan.textContent = "No images loaded";
       prevImageBtn.disabled = true;
       nextImageBtn.disabled = true;
     } else {
-      imageInfoSpan.textContent = `${currentImageIndex + 1} / ${imageData.length} (${imageData[currentImageIndex]?.filename || "..."})`; // Added safety check for filename
+      if (currentImageIndex >= 0 && currentImageIndex < imageData.length) {
+        imageInfoSpan.textContent = `${currentImageIndex + 1} / ${imageData.length} (${imageData[currentImageIndex].filename})`;
+      } else {
+        imageInfoSpan.textContent = `? / ${imageData.length}`; // Placeholder if index is somehow invalid
+      }
       prevImageBtn.disabled = currentImageIndex <= 0;
       nextImageBtn.disabled = currentImageIndex >= imageData.length - 1;
     }
@@ -237,11 +241,10 @@ document.addEventListener("DOMContentLoaded", function () {
   canvas.addEventListener("mouseleave", handleMouseLeave);
 
   function getMousePos(e) {
-    /* ... unchanged ... */ const rect = canvas.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }
   function getHandleUnderMouse(x, y) {
-    /* ... unchanged ... */
     for (let i = boxes.length - 1; i >= 0; i--) {
       const box = boxes[i];
       const hs = handleSize / 2;
@@ -277,7 +280,6 @@ document.addEventListener("DOMContentLoaded", function () {
     return null;
   }
   function handleMouseDown(e) {
-    /* ... unchanged ... */
     if (!image) return;
     const pos = getMousePos(e);
     startX = pos.x;
@@ -299,7 +301,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
   function handleMouseMove(e) {
-    /* ... unchanged ... */
     if (!image) return;
     const pos = getMousePos(e);
     const currentX = pos.x;
@@ -364,7 +365,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
   function handleMouseUp(e) {
-    /* ... unchanged, except adds to imageData[i].boxes ... */
     if (currentTool === "draw" && isDrawing) {
       isDrawing = false;
       const pos = getMousePos(e);
@@ -377,7 +377,6 @@ document.addEventListener("DOMContentLoaded", function () {
         Math.abs(height) >= minBoxSize &&
         currentImageIndex !== -1
       ) {
-        // Added check for valid index
         const newBox = {
           x: Math.min(startX, endX),
           y: Math.min(startY, endY),
@@ -409,7 +408,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
   function handleMouseLeave(e) {
-    /* ... unchanged ... */
     if (isDrawing) {
       isDrawing = false;
       redrawCanvas();
@@ -439,7 +437,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- Drawing Canvas ---
   function redrawCanvas() {
-    /* ... unchanged ... */
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (image) {
       const expectedWidth = Math.round(originalWidth * scaleRatio);
@@ -527,7 +524,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- Label Management ---
   function addNewLabel() {
-    /* ... unchanged ... */
     const labelName = newLabelInput.value.trim();
     if (labelName && !labels.some((l) => l.name === labelName)) {
       const color = getRandomColor();
@@ -551,7 +547,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
   function updateLabelsList() {
-    /* ... unchanged ... */
     labelsList.innerHTML = "";
     labels.forEach((label, index) => {
       const labelItem = document.createElement("div");
@@ -591,9 +586,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- Annotation List Management ---
   function updateAnnotationsList() {
-    /* ... unchanged, operates on current boxes via global var ... */
     annotationsList.innerHTML = "";
-    if (currentImageIndex === -1) return; // Don't update if no image loaded
+    if (currentImageIndex === -1 || !imageData[currentImageIndex]) {
+      // Added safety check for imageData existence
+      boxes = []; // Ensure boxes is empty if no valid image data
+      return;
+    }
+    boxes = imageData[currentImageIndex].boxes; // Ensure global boxes points to the right array
     boxes.forEach((box, index) => {
       const annotationItem = document.createElement("div");
       annotationItem.className = "annotation-item";
@@ -624,7 +623,7 @@ document.addEventListener("DOMContentLoaded", function () {
       labelSelect.onchange = (e) => {
         imageData[currentImageIndex].boxes[index].label = e.target.value;
         redrawCanvas();
-      }; // Updates imageData directly
+      };
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "btn delete-annotation-btn";
       deleteBtn.textContent = "X";
@@ -634,7 +633,7 @@ document.addEventListener("DOMContentLoaded", function () {
           resetEditState();
           canvas.style.cursor = "default";
         }
-        imageData[currentImageIndex].boxes.splice(index, 1); // Removes from imageData directly
+        imageData[currentImageIndex].boxes.splice(index, 1);
         if (selectedBoxIndex > index) {
           selectedBoxIndex--;
         } else if (selectedBoxIndex === index) {
@@ -652,7 +651,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- Utilities ---
   function getRandomColor() {
-    /* ... unchanged ... */ const letters = "0123456789ABCDEF";
+    const letters = "0123456789ABCDEF";
     let color = "#";
     for (let i = 0; i < 6; i++) {
       color += letters[Math.floor(Math.random() * 16)];
@@ -660,20 +659,20 @@ document.addEventListener("DOMContentLoaded", function () {
     return color;
   }
 
-  // --- MODIFIED: Download Helper Function ---
+  // --- Download Helper Function ---
   function downloadContent(content, filename, mimeType = "application/json") {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
-    document.body.appendChild(a); // Required for Firefox
+    document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url); // Clean up
+    URL.revokeObjectURL(url);
   }
 
-  // --- MODIFIED: Save JSON Annotations Function ---
+  // --- Save JSON Annotations Function ---
   function saveJsonAnnotations() {
     if (imageData.length === 0) {
       alert("No images or annotations to save!");
@@ -704,11 +703,11 @@ document.addEventListener("DOMContentLoaded", function () {
     };
     const jsonStr = JSON.stringify(allAnnotations, null, 2);
     console.log("Saving all annotations as JSON:", jsonStr);
-    downloadContent(jsonStr, `all_annotations.json`, "application/json"); // Use new helper
+    downloadContent(jsonStr, `all_annotations.json`, "application/json");
     alert("Annotation JSON for all images prepared for download.");
   }
 
-  // --- NEW: Export YOLO Annotations Function ---
+  // --- Export YOLO Annotations Function ---
   function exportYoloAnnotations() {
     if (labels.length === 0) {
       alert("Please define labels before exporting in YOLO format.");
@@ -729,7 +728,7 @@ document.addEventListener("DOMContentLoaded", function () {
     imageData.forEach((imgData) => {
       if (!imgData.boxes || imgData.boxes.length === 0) {
         return;
-      } // Skip images with no boxes
+      }
 
       let yoloContent = "";
       let skippedBoxes = 0;
@@ -757,7 +756,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const norm_width = original_box_width / imgData.originalWidth;
         const norm_height = original_box_height / imgData.originalHeight;
 
-        // Check for invalid calculations (e.g., division by zero if image dimensions are 0)
         if (
           isNaN(norm_x_center) ||
           isNaN(norm_y_center) ||
@@ -771,9 +769,7 @@ document.addEventListener("DOMContentLoaded", function () {
           return;
         }
 
-        // Clamp values to be within [0.0, 1.0] - YOLO expects this
         const clamp = (val) => Math.max(0.0, Math.min(1.0, val));
-
         yoloContent += `${labelIndex} ${clamp(norm_x_center).toFixed(6)} ${clamp(norm_y_center).toFixed(6)} ${clamp(norm_width).toFixed(6)} ${clamp(norm_height).toFixed(6)}\n`;
       });
 
@@ -783,7 +779,7 @@ document.addEventListener("DOMContentLoaded", function () {
           imgData.filename;
         const yoloFilename = `${baseFilename}.txt`;
 
-        downloadContent(yoloContent, yoloFilename, "text/plain"); // Use new helper
+        downloadContent(yoloContent, yoloFilename, "text/plain");
         exportedFiles++;
       } else if (
         skippedBoxes === imgData.boxes.length &&
@@ -808,6 +804,55 @@ document.addEventListener("DOMContentLoaded", function () {
           "No annotations found with recognized labels to export in YOLO format.",
         );
       }
+    }
+  }
+
+  // --- NEW: Function to Delete Current Image ---
+  function deleteCurrentImage() {
+    if (currentImageIndex < 0 || currentImageIndex >= imageData.length) {
+      console.warn(
+        "Delete button clicked but no valid image index:",
+        currentImageIndex,
+      );
+      return;
+    }
+
+    const imageToDelete = imageData[currentImageIndex];
+
+    if (
+      !confirm(
+        `Are you sure you want to delete image "${imageToDelete.filename}"? All its annotations will be lost. This cannot be undone.`,
+      )
+    ) {
+      return; // User cancelled
+    }
+
+    console.log(
+      `Deleting image index ${currentImageIndex}: ${imageToDelete.filename}`,
+    );
+
+    imageData.splice(currentImageIndex, 1); // Remove the image data
+
+    let nextIndex = -1; // Default to no image loaded state
+
+    if (imageData.length === 0) {
+      nextIndex = -1;
+      console.log("Last image deleted. Clearing canvas.");
+    } else if (currentImageIndex >= imageData.length) {
+      // If deleted the last image, load the new last one
+      nextIndex = imageData.length - 1;
+      console.log("Deleted last image in list. Loading new last image.");
+    } else {
+      // Otherwise, load the image that shifted into the current index
+      nextIndex = currentImageIndex;
+      console.log("Deleted image. Loading next image in sequence.");
+    }
+
+    // Load the next state
+    if (nextIndex === -1) {
+      clearCanvasAndState(); // Clear canvas and update UI
+    } else {
+      loadImageData(nextIndex); // Load the appropriate image
     }
   }
 
