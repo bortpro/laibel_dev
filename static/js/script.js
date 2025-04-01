@@ -41,13 +41,13 @@ document.addEventListener("DOMContentLoaded", function () {
   const drawBoxBtn = document.getElementById("draw-box-btn");
   const editBoxBtn = document.getElementById("edit-box-btn");
   const addLabelBtn = document.getElementById("add-label-btn");
-  const newLabelInput = document.getElementById("new-label");
+  const newLabelInput = document.getElementById("new-label"); // Needed for shortcut check
   const labelsList = document.getElementById("labels-list");
   const annotationsList = document.getElementById("annotations-list");
-  const prevImageBtn = document.getElementById("prev-image-btn");
-  const nextImageBtn = document.getElementById("next-image-btn");
+  const prevImageBtn = document.getElementById("prev-image-btn"); // Needed for shortcuts
+  const nextImageBtn = document.getElementById("next-image-btn"); // Needed for shortcuts
   const imageInfoSpan = document.getElementById("image-info");
-  const deleteImageBtn = document.getElementById("delete-image-btn"); // Added delete button element
+  const deleteImageBtn = document.getElementById("delete-image-btn");
 
   // --- Event Listeners ---
   drawBoxBtn.addEventListener("click", () => switchTool("draw"));
@@ -73,7 +73,10 @@ document.addEventListener("DOMContentLoaded", function () {
   });
   saveBtn.addEventListener("click", saveJsonAnnotations);
   exportYoloBtn.addEventListener("click", exportYoloAnnotations);
-  deleteImageBtn.addEventListener("click", deleteCurrentImage); // Added delete button listener
+  deleteImageBtn.addEventListener("click", deleteCurrentImage);
+
+  // --- Keyboard Shortcut Listener ---
+  document.addEventListener("keydown", handleKeyDown);
 
   // --- Tool Switching and State Reset ---
   function switchTool(tool) {
@@ -199,7 +202,6 @@ document.addEventListener("DOMContentLoaded", function () {
     image.src = data.src;
   }
   function clearCanvasAndState() {
-    // MODIFIED implicitly by calling updated updateNavigationUI
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     image = null;
     boxes = [];
@@ -211,13 +213,12 @@ document.addEventListener("DOMContentLoaded", function () {
     resetDrawState();
     resetEditState();
     updateAnnotationsList();
-    updateNavigationUI(); // This will now also handle disabling delete btn
+    updateNavigationUI();
     console.log("Canvas and state cleared.");
   }
   function updateNavigationUI() {
-    // MODIFIED to handle delete button state
     const hasImages = imageData.length > 0;
-    deleteImageBtn.disabled = !hasImages; // Enable/disable delete button
+    deleteImageBtn.disabled = !hasImages;
 
     if (!hasImages) {
       imageInfoSpan.textContent = "No images loaded";
@@ -227,7 +228,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (currentImageIndex >= 0 && currentImageIndex < imageData.length) {
         imageInfoSpan.textContent = `${currentImageIndex + 1} / ${imageData.length} (${imageData[currentImageIndex].filename})`;
       } else {
-        imageInfoSpan.textContent = `? / ${imageData.length}`; // Placeholder if index is somehow invalid
+        imageInfoSpan.textContent = `? / ${imageData.length}`;
       }
       prevImageBtn.disabled = currentImageIndex <= 0;
       nextImageBtn.disabled = currentImageIndex >= imageData.length - 1;
@@ -588,11 +589,10 @@ document.addEventListener("DOMContentLoaded", function () {
   function updateAnnotationsList() {
     annotationsList.innerHTML = "";
     if (currentImageIndex === -1 || !imageData[currentImageIndex]) {
-      // Added safety check for imageData existence
-      boxes = []; // Ensure boxes is empty if no valid image data
+      boxes = [];
       return;
     }
-    boxes = imageData[currentImageIndex].boxes; // Ensure global boxes points to the right array
+    boxes = imageData[currentImageIndex].boxes;
     boxes.forEach((box, index) => {
       const annotationItem = document.createElement("div");
       annotationItem.className = "annotation-item";
@@ -807,7 +807,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // --- NEW: Function to Delete Current Image ---
+  // --- Function to Delete Current Image ---
   function deleteCurrentImage() {
     if (currentImageIndex < 0 || currentImageIndex >= imageData.length) {
       console.warn(
@@ -853,6 +853,40 @@ document.addEventListener("DOMContentLoaded", function () {
       clearCanvasAndState(); // Clear canvas and update UI
     } else {
       loadImageData(nextIndex); // Load the appropriate image
+    }
+  }
+
+  // --- Keyboard Shortcut Handler Function ---
+  function handleKeyDown(event) {
+    // Ignore shortcuts if the user is typing in the label input field
+    if (event.target === newLabelInput) {
+      return;
+    }
+    // Ignore shortcuts if modifier keys like Ctrl, Alt, Meta are pressed
+    if (event.ctrlKey || event.altKey || event.metaKey) {
+      return;
+    }
+
+    switch (event.key.toLowerCase()) {
+      case "f": // 'f' for Forward (Next)
+        if (!nextImageBtn.disabled) {
+          console.log("Shortcut 'f' pressed: Navigating next");
+          nextImageBtn.click();
+        } else {
+          console.log("Shortcut 'f' pressed: Already at last image");
+        }
+        // event.preventDefault(); // Optional: prevent default browser behavior
+        break;
+
+      case "r": // 'r' for Reverse (Previous)
+        if (!prevImageBtn.disabled) {
+          console.log("Shortcut 'r' pressed: Navigating previous");
+          prevImageBtn.click();
+        } else {
+          console.log("Shortcut 'r' pressed: Already at first image");
+        }
+        // event.preventDefault(); // Optional: prevent default browser behavior
+        break;
     }
   }
 
