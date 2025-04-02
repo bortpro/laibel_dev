@@ -74,7 +74,7 @@
                                     class="btn"
                                     disabled
                                 >
-                                    < Prev
+                                    &lt; Prev
                                 </button>
                                 <span id="image-info">No images loaded</span>
                                 <button
@@ -82,7 +82,7 @@
                                     class="btn"
                                     disabled
                                 >
-                                    Next >
+                                    Next &gt;
                                 </button>
                             </div>
                             <button
@@ -93,13 +93,19 @@
                                 Delete Image
                             </button>
 
-                            <button id="save-btn" class="btn primary">
-                                Save Annotations
-                            </button>
-
-                            <button id="export-yolo-btn" class="btn primary">
-                                Export YOLO
-                            </button>
+                            <!-- *** START MODIFICATION *** -->
+                            <div class="save-export-group">
+                                <button id="save-btn" class="btn primary">
+                                    Export JSON
+                                </button>
+                                <button
+                                    id="export-yolo-btn"
+                                    class="btn primary"
+                                >
+                                    Export YOLO
+                                </button>
+                            </div>
+                            <!-- *** END MODIFICATION *** -->
                         </div>
                         <div class="canvas-wrapper">
                             <canvas id="image-canvas"></canvas>

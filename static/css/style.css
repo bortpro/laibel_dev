@@ -1,4 +1,3 @@
-/* Reset and base styles */
 * {
     margin: 0;
     padding: 0;
@@ -79,7 +78,7 @@ footer {
     justify-content: space-between; /* Space out items */
     align-items: center; /* Vertically align items */
     flex-wrap: wrap; /* Allow wrapping on smaller screens */
-    gap: 10px; /* Add gap between items */
+    gap: 10px; /* Add gap between items/groups */
 }
 
 .canvas-wrapper {
@@ -185,6 +184,14 @@ canvas {
     text-overflow: ellipsis; /* Show ellipsis if filename is too long */
 }
 /* --- END NEW STYLES --- */
+
+/* *** START NEW CSS RULE *** */
+/* Group Save and Export buttons */
+.save-export-group {
+    display: flex;
+    gap: 5px; /* Smaller gap between Save and Export */
+}
+/* *** END NEW CSS RULE *** */
 
 /* Tool sections */
 .tool-section,
