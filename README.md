@@ -1,4 +1,3 @@
-
 # lAIbel
 
 A lightweight image annotation tool designed for efficient labeling of images to create downstream AI models.lAIbel provides a cross-platform browser-based interface for drawing and managing bounding box annotations, streamlining the data preparation phase for computer vision tasks. Labels can be exported in a variety of formats.
